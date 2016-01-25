@@ -1,9 +1,9 @@
-def get_next_head_position(snake, direction)
-  [snake.last, direction].transpose.map { |x| x.reduce(:+) }
+def destination(snake_head, direction)
+  [snake_head.first + direction.first, snake_head.last + direction.last]
 end
 
 def grow(snake, direction)
-  snake.map { |item| item.dup } + [get_next_head_position(snake, direction)]
+  snake.map { |item| item.dup } + [destination(snake.last, direction)]
 end
 
 def move(snake, direction)
@@ -18,33 +18,22 @@ def generate_fruit(dimensions)
   [rand(dimensions[:width]), rand(dimensions[:height])]
 end
 
-def fruit_position_valid?(fruit, food, snake, dimensions)
-  on_snake = snake.include?(fruit)
-  on_food = food.include?(fruit)
-  out_of_bounds = out_of_bounds?(*fruit, dimensions)
-
-  not (on_snake or on_food or out_of_bounds)
-end
-
 def new_food(food, snake, dimensions)
   fruit = generate_fruit(dimensions)
-  until fruit_position_valid?(fruit, food, snake, dimensions)
+  while snake.include?(fruit) or food.include?(fruit)
     fruit = generate_fruit(dimensions)
   end
   fruit
 end
 
 def obstacle_ahead?(snake, direction, dimensions)
-  next_head = get_next_head_position(snake, direction)
+  next_head = destination(snake.last, direction)
   ate_self = snake.include?(next_head)
 
   out_of_bounds?(*next_head, dimensions) or ate_self
 end
 
 def danger?(snake, direction, dimensions)
-  dead_on_first_move = obstacle_ahead?(snake, direction, dimensions)
-  moved_snake = move(snake, direction)
-  dead_on_second_move = obstacle_ahead?(moved_snake, direction, dimensions)
-
-  dead_on_first_move or dead_on_second_move
+  obstacle_ahead?(snake, direction, dimensions) or
+    obstacle_ahead?(move(snake, direction), direction, dimensions)
 end
