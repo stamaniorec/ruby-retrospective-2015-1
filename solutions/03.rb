@@ -1,14 +1,12 @@
-def multiples_of(number)
-  (2..number).select { |n| number % n == 0 }
-end
-
-class RationalSequence
+class Sequence
   include Enumerable
 
   def initialize(limit)
     @limit = limit
   end
+end
 
+class RationalSequence < Sequence
   def each
     (1..Float::INFINITY).lazy.flat_map do |n|
       enum_for(:generate_nth_diagonal, n).to_a
@@ -21,38 +19,34 @@ class RationalSequence
 
     range.each do |numerator|
       denominator = n - numerator + 1
-      if not_encountered_before?(numerator, denominator)
+      unless encountered_before?(numerator, denominator)
         yield Rational(numerator, denominator)
       end
     end
   end
 
-  def not_encountered_before?(numerator, denominator)
-    ((multiples_of numerator) & (multiples_of denominator)).empty?
+  def encountered_before?(numerator, denominator)
+    ((multiples_of numerator) & (multiples_of denominator)).any?
+  end
+
+  def multiples_of(number)
+    (2..number).select { |n| number % n == 0 }
   end
 end
 
 class Integer
   def prime?
-    return false if self == 1
-    (2..self / 2).none? { |n| self % n == 0 }
+    (1..self ** 0.5).one? { |divisor| self % divisor == 0 }
   end
 end
 
-class PrimeSequence
-  include Enumerable
-
-  def initialize(limit)
-    @limit = limit
-  end
-
+class PrimeSequence < Sequence
   def each
-    primes = (2..Float::INFINITY).lazy.select { |n| n.prime? }
-    primes.take(@limit).each { |prime| yield prime }
+    (2..Float::INFINITY).lazy.select(&:prime?).take(@limit).each { |prime| yield prime }
   end
 end
 
-class FibonacciSequence
+class FibonacciSequence < Sequence
   include Enumerable
 
   def initialize(limit, first: 1, second: 1)
@@ -62,11 +56,9 @@ class FibonacciSequence
   end
 
   def each
-    count = 0
     previous, current = @first, @second
-    while count < @limit
+    @limit.times do
       yield previous
-      count += 1
       current, previous = current + previous, current
     end
   end
@@ -76,24 +68,24 @@ module DrunkenMathematician
   module_function
 
   def meaningless(n)
-    group1, group2 = RationalSequence.new(n).partition do |rational|
+    primeish, non_primeish = RationalSequence.new(n).partition do |rational|
       rational.numerator.prime? or rational.denominator.prime?
     end
-
-    (group1.reduce(:*) or 1) / (group2.reduce(:*) or 1)
+    (primeish.reduce(1, :*) / non_primeish.reduce(1, :*))
   end
 
   def aimless(n)
     PrimeSequence.new(n).each_slice(2).map do |pair|
-      Rational(pair.first, pair.last)
+      pair.length == 2 ? Rational(pair.first, pair.last) : Rational(pair.first, 1)
     end.reduce(:+)
   end
 
   def worthless(n)
+    nth_fibonacci = FibonacciSequence.new(n).to_a.last
     (1..Float::INFINITY).lazy.map do |i|
       RationalSequence.new(i).to_a
-    end.take_while do |seq|
-      seq.reduce(:+) <= FibonacciSequence.new(n).to_a.last
+    end.take_while do |sequence|
+      sequence.reduce(:+) <= nth_fibonacci
     end.to_a.last
   end
 end
