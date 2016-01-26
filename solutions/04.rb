@@ -15,9 +15,9 @@ class Card
   end
 end
 
-SUITS = [:clubs, :diamonds, :hearts, :spades].freeze
-
 class Deck
+  SUITS = [:clubs, :diamonds, :hearts, :spades].freeze
+
   include Enumerable
 
   def initialize(deck = [])
@@ -59,16 +59,12 @@ class Deck
   end
 
   def to_s
-    @deck.join("\n")
+    @deck.map(&:to_s).join("\n")
   end
 
  private
   def generate_deck
-    SUITS.each_with_object([]) do |suit, deck|
-      get_cards.each do |rank|
-        deck << Card.new(rank, suit)
-      end
-    end
+    SUITS.product(get_cards).map { |suit, rank| Card.new(rank, suit) }
   end
 
   def sort_by_suit(deck)
@@ -101,6 +97,7 @@ class WarHand < Hand
   def play_card
     @hand.delete_at(rand(@hand.length))
   end
+
   def allow_face_up?
     @hand.size <= 3
   end
@@ -110,9 +107,11 @@ class WarDeck < Deck
   def get_cards
     [(2..10).to_a, :jack, :queen, :king, :ace].flatten
   end
+
   def cards_in_hand
     26
   end
+
   def deal
     WarHand.new(@deck.shift(cards_in_hand))
   end
@@ -122,9 +121,11 @@ class BeloteDeck < Deck
   def get_cards
     [7, 8, 9, :jack, :queen, :king, 10, :ace]
   end
+
   def cards_in_hand
     8
   end
+
   def deal
     BeloteHand.new(@deck.shift(cards_in_hand))
   end
@@ -171,7 +172,7 @@ class BeloteHand < Hand
 
   private
   def sort(cards)
-    cards.sort { |x,y| get_cards.index(x) <=> get_cards.index(y) }
+    cards.sort { |x,y| get_cards.index(x.rank) <=> get_cards.index(y.rank) }
   end
 
   def has_n_consecutive_cards(n, cards)
@@ -191,6 +192,7 @@ class SixtySixHand < Hand
       suit != trump_suit and cards.include?(:king) and cards.include?(:queen)
     end
   end
+
   def forty?(trump_suit)
     of_same_suit do |suit, cards|
       suit == trump_suit and cards.include?(:king) and cards.include?(:queen)
@@ -202,9 +204,11 @@ class SixtySixDeck < Deck
   def get_cards
     [9, :jack, :queen, :king, 10, :ace]
   end
+
   def cards_in_hand
     6
   end
+
   def deal
     SixtySixHand.new(@deck.shift(cards_in_hand))
   end
